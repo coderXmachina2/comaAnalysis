@@ -91,7 +91,5 @@ def Fsmoothing(inmage, zeroutparams ,newSize, verboseT=False):
         print("absIFFT shape:", absIFFT.shape)
 
     return (absIFFT)
-
-
     
 #######################################################################################################################################

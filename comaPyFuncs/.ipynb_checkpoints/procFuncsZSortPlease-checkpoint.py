@@ -18,7 +18,27 @@ from scipy.interpolate import griddata
 from matplotlib.colors import Normalize
 from matplotlib.patches import Circle
 from matplotlib.patches import Ellipse
+from scipy.optimize import curve_fit
 from skimage.draw import ellipse_perimeter, circle_perimeter
+
+#procFuncsZSortPlease.
+def fit_ellipse_params(list_params):
+    x_data = np.arange(len(list_params))
+
+    igdata = [max(list_params), 1, np.median(x_data)]
+
+    parmsSemiMaj, covarsemiMaj = curve_fit(logis_func,
+                                           x_data,
+                                           list_params,
+                                           p0=igdata)
+    L, k, x0 = parmsSemiMaj
+    fitted_axis = logis_func(x_data, L, k, x0)
+
+    return ([int(x) for x in fitted_axis])
+
+
+def logis_func(x, L, k, x0):
+    return(L / (1 + np.exp(-k*(x-x0))))
 
 def calcdist(  point1,  point2):
     """
@@ -265,7 +285,32 @@ def zero_outside_radius(img, center, radius):
                 
     return output_image
 
-def sample_in_directions(image, location):
+def Combine(indict, jointup, verboseC=False):
+    #THIS IS WRONG. THIS IS A BUG!
+    if (verboseC):
+        print("These should be the same")
+        print("Last of reversed:", np.array([x[0] for x in indict[jointup[0]]])[::-1][-1])
+        print("First of right side:", np.array([x[0] for x in indict[jointup[1]]])[::][0])
+    
+    joined = np.concatenate((np.array([x[0] for x in indict[jointup[0]]])[::-1][:-1], #Flipped and trimmed. Why do you trim it like that? [:-1]
+                             np.array([x[0] for x in indict[jointup[1]]])[::][:]), axis = 0) #[:-1] #Everything until the last one...
+
+    if verboseC:
+        print("Vals at start (verify): ", [indict[jointup[0]][0], indict[jointup[1]][0]] ) #This is already proof...
+        print("Joining: ",  jointup[0], " with ",  jointup[1]  )
+        print("Length of " + jointup[0] + " reversed and pruned: ", len( np.array([x[0] for x in indict[jointup[0]]])[::-1][1:])    )
+        print("Length of " + jointup[1] + ": ", len( np.array([x[0] for x in indict[jointup[1]]])[::][:])   )
+        print("Final Length:",
+              len( np.array([x[0] for x in indict[jointup[0]]])[::-1][:-1]) + len( np.array([x[0] for x in indict[jointup[1]]])[::][:])    )
+        
+        print("")
+
+        print("-----------------------")
+    
+    return([joined, 
+            len(np.array([x[0] for x in indict[jointup[0]]])[::-1][1:])])
+
+def sample_in_directions(image, cent_loc, verboseH=False, verboseL=False):
     directions = {
         'up': (-1, 0),
         'down': (1, 0),
@@ -278,21 +323,69 @@ def sample_in_directions(image, location):
     }
     
     img_height, img_width = image.shape
-    central_y, central_x = location
+    central_y, central_x = cent_loc
     samples = {}
+
+    if(verboseH):
+        print("Amplitude at sampled center (Cartesian) (", cent_loc[1], cent_loc[0],")", image[cent_loc[0]][cent_loc[1]])
+        print()
     
-    # For each direction, sample pixels
+    # For each direction, sample pixels and record their positions
     for direction, (dy, dx) in directions.items():
         y, x = central_y, central_x
         samples[direction] = []
+        #print()
         
         while 0 <= y < img_height and 0 <= x < img_width:
-            samples[direction].append(image[y, x])
+            # Append both the pixel value and the coordinates as a tuple
+            samples[direction].append([image[y, x], (y, x)])
             y += dy
             x += dx
+
+        if (verboseL):
+            print("Direction:", direction, "Length sample:", len(samples[direction]))
+            print("Val (amp and coord) at start:", samples[direction][0])
+            print("Val (amp and coord) at end:", samples[direction][-1])
+            print("Height:", samples[direction][0][0] - samples[direction][-1][0])
+            print()    
     
     return samples
 
+def rectify_walk(walkdata, lens, joinslist, verboseH = False , verboseL=False):
+    #if (verboseH):
+    #    print("This illustrates the problem where Index of the data are not the same all the time")
+    #    print("Depending on where the peak is")
+        
+    legendhold = []
+    datalens = [] 
+    
+    for k in range(0, len(walkdata)):# in datasjoined:
+        if (verboseL):
+            print(joinslist[k][0]+"_to_"+ joinslist[k][1] )
+            print("Length of data:" , len(walkdata[k]))
+            print("Length flipped: ", lens[k])
+            print("") 
+            print("Anchor verify:", walkdata[k][lens[k]], "index:", lens[k]) #Lat value... 
+            print()
+            print("Max of data:", np.max(walkdata[k]), "index:", np.where(walkdata[k]== np.max(walkdata[k])))
+            print("")
+            print("----")
+            print("")
+            
+        datalens.append(lens[k])
+        legendhold.append(joinslist[k][0]+"_to_"+ joinslist[k][1])
+
+    if (verboseH):
+        print("Max length (padded must defer to this):", np.max(datalens))
+        print("Min length (farthest offset):", np.min(datalens))
+
+        print("\nOffset Corrections:")#, [(np.max(datalens) - x) for x in datalens] )
+        #print("Joinslist:", legendhold)
+        for k in range(0, len(legendhold)):
+            print(legendhold[k],":", [(np.max(datalens) - x) for x in datalens][k], "spaces")
+            
+    return(legendhold) #We get the corrected model...
+    
 def mask_image(image, coordinates, mask_val):
     imgcpy = image.copy()
     for coord in coordinates:
