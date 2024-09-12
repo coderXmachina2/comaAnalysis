@@ -14,21 +14,20 @@ from matplotlib.patches import Circle
 from matplotlib.patches import Ellipse
 
 # Initialize counters
-def count_stuff(array_spects, 
-                txtPrnt=''):
+def count_stuff(array_spects, txtPrnt=""):
     """
     Probe archive stuff.
     """
     _1dspect = 0
     _2dimg = 0
-    _1darrays=[]
-    _2darrays=[]
+    _1darrays = []
+    _2darrays = []
     # Iterate through the items in the data array
     print(txtPrnt, "N artefacts:", len(array_spects))
-    for item in array_spects :
+    for item in array_spects:
         # Check if the item is a numpy array
         if isinstance(item, np.ndarray):
-            #print("Yes!")
+            # print("Yes!")
             # Check if it's a 2D array by looking at the number of dimensions
             if item.ndim == 2:
                 _2dimg += 1  # Increment counter for 2D images (nested arrays)
@@ -36,17 +35,17 @@ def count_stuff(array_spects,
             elif item.ndim == 1:
                 _1darrays.append(item)
                 _1dspect += 1  # Increment counter for 1D spectrum (non-nested arrays)
-    
+
     print("1D spectrum count:", _1dspect)
     print("2D image count:", _2dimg)
 
-    return(_1darrays, _2darrays)
+    return (_1darrays, _2darrays)
 
 
 def extract_functions_and_args(lines):
     """
     # Function to extract function headers, their docstrings, and input arguments
-    
+
     """
     function_definitions = []
     function_pattern = re.compile(r"^\s*def\s+(\w+)\((.*?)\):")
@@ -62,7 +61,11 @@ def extract_functions_and_args(lines):
         if match:
             if current_function:
                 # Append the current function, its argument count, and associated docstring
-                argument_count = len(current_function_args.split(',')) if current_function_args else 0
+                argument_count = (
+                    len(current_function_args.split(","))
+                    if current_function_args
+                    else 0
+                )
                 function_definitions.append(
                     f"{current_function}\n{argument_count} input arguments\n{''.join(docstring_buffer)}"
                 )
@@ -83,27 +86,32 @@ def extract_functions_and_args(lines):
 
     # Add the last function in case there's one still in progress
     if current_function:
-        argument_count = len(current_function_args.split(',')) if current_function_args else 0
+        argument_count = (
+            len(current_function_args.split(",")) if current_function_args else 0
+        )
         function_definitions.append(
             f"{current_function}\n{argument_count} input arguments\n{''.join(docstring_buffer)}"
         )
 
     return function_definitions
 
+
 # Function to process Python files and extract comments, imports, and functions
 def process_python_files(file_path):
-    with open(file_path, 'r') as py_file:
+    with open(file_path, "r") as py_file:
         lines = py_file.readlines()
 
     # Create a .txt file with no comment lines
     txt_filename = os.path.basename(file_path).replace(".py", ".txt")
     txt_filepath = os.path.join(txt_directory, txt_filename)
     filtered_lines = [line for line in lines if not line.lstrip().startswith("#")]
-    with open(txt_filepath, 'w') as txt_file:
+    with open(txt_filepath, "w") as txt_file:
         txt_file.writelines(filtered_lines)
 
     # Extract import statements and function headers
-    import_lines = [line for line in lines if line.strip().startswith(('import', 'from'))]
+    import_lines = [
+        line for line in lines if line.strip().startswith(("import", "from"))
+    ]
     function_lines = extract_functions_and_args(lines)
 
     # Count imports and functions
@@ -117,7 +125,7 @@ def process_python_files(file_path):
     # Create a meta.txt file with imports, function headers, and main execution status
     meta_filename = os.path.basename(file_path).replace(".py", "_meta.txt")
     meta_filepath = os.path.join(meta_directory, meta_filename)
-    with open(meta_filepath, 'w') as meta_file:
+    with open(meta_filepath, "w") as meta_file:
         if import_lines:
             meta_file.write(f"{import_count} Imports found:\n")
             meta_file.writelines(import_lines)
@@ -130,7 +138,7 @@ def process_python_files(file_path):
             meta_file.writelines(f"{func}\n" for func in function_lines)
         else:
             meta_file.write("No functions in this file\n\n")
-        
+
         meta_file.write(f"{main_execution}\n")
 
     # Extract all comment lines
@@ -140,7 +148,7 @@ def process_python_files(file_path):
     # Create a comments.txt file to store all extracted comments
     comments_filename = os.path.basename(file_path).replace(".py", "_comments.txt")
     comments_filepath = os.path.join(comments_directory, comments_filename)
-    with open(comments_filepath, 'w') as comments_file:
+    with open(comments_filepath, "w") as comments_file:
         if comment_count > 0:
             comments_file.write(f"{comment_count} comment lines found:\n")
             comments_file.writelines(comment_lines)

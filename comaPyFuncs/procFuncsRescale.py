@@ -18,28 +18,25 @@ from matplotlib.patches import Ellipse
 These functions always return stuff.
 """
 
-def zoomrescale(img, 
-                samplingfactor, 
-                mode = 'constant'):
+
+def zoomrescale(img, samplingfactor, mode="constant"):
     """
     Takes in an image. Resizes it with zoom. This is a wrapper function because I dont need ndimage in my main.
     """
-    return(ndimage.zoom(img, samplingfactor, mode='constant'))
-    
-def upscale_repeat(img, 
-                   upsampfact):
+    return ndimage.zoom(img, samplingfactor, mode="constant")
+
+
+def upscale_repeat(img, upsampfact):
     """
     Takes in an image. Resizes it. It repeats the pixel by the scaling factor number.
     """
     # Calculate the new dimensions
     new_width = img.shape[1] * upsampfact
     new_height = img.shape[0] * upsampfact
-    
+
     # Use NumPy's repeat function to upsample the image
-    upsampled_image = np.repeat(np.repeat(img , upsampfact, axis=0), 
-                                upsampfact, 
-                                axis=1)
-    return(upsampled_image)
+    upsampled_image = np.repeat(np.repeat(img, upsampfact, axis=0), upsampfact, axis=1)
+    return upsampled_image
 
 
 def downscale_img(upsampled_img, downsampfact):
@@ -55,12 +52,17 @@ def downscale_img(upsampled_img, downsampfact):
     if len(upsampled_img.shape) == 3:
         # Color image
         num_channels = upsampled_img.shape[2]
-        downsampled_image = np.zeros((new_height, new_width, num_channels), dtype=upsampled_img.dtype)
+        downsampled_image = np.zeros(
+            (new_height, new_width, num_channels), dtype=upsampled_img.dtype
+        )
 
         # Loop over each block and calculate the average value for each channel
         for i in range(new_height):
             for j in range(new_width):
-                block = upsampled_img[i*downsampfact:(i+1)*downsampfact, j*downsampfact:(j+1)*downsampfact]
+                block = upsampled_img[
+                    i * downsampfact : (i + 1) * downsampfact,
+                    j * downsampfact : (j + 1) * downsampfact,
+                ]
                 downsampled_image[i, j] = block.mean(axis=(0, 1))
     else:
         # Shape Image = 2
@@ -69,7 +71,10 @@ def downscale_img(upsampled_img, downsampfact):
         # Loop over each block and calculate the average value
         for i in range(new_height):
             for j in range(new_width):
-                block = upsampled_img[i*downsampfact:(i+1)*downsampfact, j*downsampfact:(j+1)*downsampfact]
+                block = upsampled_img[
+                    i * downsampfact : (i + 1) * downsampfact,
+                    j * downsampfact : (j + 1) * downsampfact,
+                ]
                 downsampled_image[i, j] = block.mean()
 
-    return (downsampled_image)
+    return downsampled_image
